@@ -1,104 +1,107 @@
-import * as anchor from "@project-serum/anchor";
-import { useWallet } from '@solana/wallet-adapter-react';
+import React from 'react';
+import { AnchorWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 
-const { SystemProgram } = anchor.web3;
+const anchor = require("@project-serum/anchor");
+const { SystemProgram, Connection } = anchor.web3;
 
-const provider = anchor.Provider.defaultOptions();
-const programId = new anchor.web3.PublicKey(
-    "E5s3D6B3PJinuB9kb3dicxfi3qUNLUGX6hoPawhbqagt"
-);
 
-const idl = JSON.parse(`{
+const IDL = {
     "version": "0.0.0",
     "name": "basic_1",
     "instructions": [
-      {
-        "name": "initialize",
-        "accounts": [
-          {
-            "name": "myAccount",
-            "isMut": true,
-            "isSigner": true
-          },
-          {
-            "name": "user",
-            "isMut": true,
-            "isSigner": true
-          },
-          {
-            "name": "systemProgram",
-            "isMut": false,
-            "isSigner": false
-          }
-        ],
-        "args": [
-          {
-            "name": "data",
-            "type": "u64"
-          }
-        ]
-      },
-      {
-        "name": "update",
-        "accounts": [
-          {
-            "name": "myAccount",
-            "isMut": true,
-            "isSigner": false
-          }
-        ],
-        "args": [
-          {
-            "name": "data",
-            "type": "u64"
-          }
-        ]
-      }
+        {
+            "name": "initialize",
+            "accounts": [
+                {
+                    "name": "myAccount",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "user",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "data",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "update",
+            "accounts": [
+                {
+                    "name": "myAccount",
+                    "isMut": true,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "data",
+                    "type": "u64"
+                }
+            ]
+        }
     ],
     "accounts": [
-      {
-        "name": "MyAccount",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "data",
-              "type": "u64"
+        {
+            "name": "MyAccount",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "data",
+                        "type": "u64"
+                    }
+                ]
             }
-          ]
         }
-      }
     ],
     "metadata": {
-      "address": "7oe3AtCRgrQM9YJZWG7jbTqxVafDjXbwY9NHVkDhPpNP"
+        "address": "7oe3AtCRgrQM9YJZWG7jbTqxVafDjXbwY9NHVkDhPpNP"
     }
-  }`);
-
-async function DoIt(publicKey: string | undefined) {
-    if (publicKey === undefined) {
-        return;
-    }
-
-    const myAccount = anchor.web3.Keypair.generate();
-    const program = new anchor.Program(idl, programId);
-
-    // Create the new account and initialize it with the program.
-    // #region code-simplified
-    await program.rpc.initialize(new anchor.BN(1234), {
-        accounts: {
-            myAccount: myAccount.publicKey,
-            user: publicKey,
-            systemProgram: SystemProgram.programId,
-        },
-        signers: [myAccount],
-    });
-
 }
 
+
+
+
 export default function MainApp() {
-    const { publicKey } = useWallet();
+    const anchorWallet = useAnchorWallet();
+    React.useEffect(() => {
+        const doIt = async (anchorWallet: AnchorWallet) => {
+            console.log("doing it");
+            const provider = new anchor.Provider(
+                new Connection('https://api.mainnet-beta.solana.com', 'recent'),
+                anchorWallet,
+                anchor.Provider.defaultOptions(),
+            );
+            const programId = new anchor.web3.PublicKey(IDL.metadata.address);
+            const program = new anchor.Program(IDL, programId, provider);
+            console.log({ program });
+            const myAccount = anchor.web3.Keypair.generate();
+            await program.rpc.initialize(new anchor.BN(1234), {
+                accounts: {
+                    myAccount: myAccount.publicKey,
+                    user: anchorWallet.publicKey,
+                    systemProgram: SystemProgram.programId,
+                },
+                signers: [myAccount],
+            });
+        }
+        if (anchorWallet) {
+            doIt(anchorWallet);
+        }
+    }, [anchorWallet])
     return <>
-        {publicKey && <button onClick={() => DoIt(publicKey?.toString())}>Do It</button>}
-        <pre>{JSON.stringify({ provider, programId, anchor }, null, 2)}</pre>;
+        <div>hello</div>
     </>
 }
