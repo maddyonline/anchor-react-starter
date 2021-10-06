@@ -7,7 +7,7 @@ const { SystemProgram, Connection } = anchor.web3;
 
 const IDL = {
     "version": "0.0.0",
-    "name": "basic_1",
+    "name": "xbasic_1",
     "instructions": [
         {
             "name": "initialize",
@@ -67,36 +67,35 @@ const IDL = {
         }
     ],
     "metadata": {
-        "address": "7oe3AtCRgrQM9YJZWG7jbTqxVafDjXbwY9NHVkDhPpNP"
+        "address": "2j4NMzDYQPLpS2HKLR7EnzPt5MXBt3fT9PeWTvUAznQp"
     }
 }
 
 
-
-
 export default function MainApp() {
     const anchorWallet = useAnchorWallet();
+    const doIt = async (anchorWallet: AnchorWallet) => {
+        console.log("doing it");
+        const provider = new anchor.Provider(
+            new Connection('https://api.devnet.solana.com'),
+            anchorWallet,
+            anchor.Provider.defaultOptions(),
+        );
+        const programId = new anchor.web3.PublicKey(IDL.metadata.address);
+        const program = new anchor.Program(IDL, programId, provider);
+        console.log({ program });
+        const myAccount = anchor.web3.Keypair.generate();
+        await program.rpc.initialize(new anchor.BN(1234), {
+            accounts: {
+                myAccount: myAccount.publicKey,
+                user: provider.wallet.publicKey,
+                systemProgram: SystemProgram.programId,
+            },
+            signers: [myAccount],
+        });
+    }
     React.useEffect(() => {
-        const doIt = async (anchorWallet: AnchorWallet) => {
-            console.log("doing it");
-            const provider = new anchor.Provider(
-                new Connection('https://api.mainnet-beta.solana.com', 'recent'),
-                anchorWallet,
-                anchor.Provider.defaultOptions(),
-            );
-            const programId = new anchor.web3.PublicKey(IDL.metadata.address);
-            const program = new anchor.Program(IDL, programId, provider);
-            console.log({ program });
-            const myAccount = anchor.web3.Keypair.generate();
-            await program.rpc.initialize(new anchor.BN(1234), {
-                accounts: {
-                    myAccount: myAccount.publicKey,
-                    user: anchorWallet.publicKey,
-                    systemProgram: SystemProgram.programId,
-                },
-                signers: [myAccount],
-            });
-        }
+
         if (anchorWallet) {
             doIt(anchorWallet);
         }
